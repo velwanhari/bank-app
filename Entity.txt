@@ -1,0 +1,41 @@
+User 
+======================
+id auto 
+email string
+password string
+type string [admin,staff,customer]
+relation_id
+
+Staff
+======================
+id auto
+name string
+address string
+emp_id string (5 character)
+
+Customer 
+=================
+id 
+name string 
+photo string (url)
+phone_number string  
+email string
+addreess string
+kyc bool 
+pan string
+
+Account
+============
+id auto
+type string [saving,current,fd,loan]
+balance float
+account_num string
+
+Transaction 
+=================
+id 
+account_id 
+is_credit bool
+amount
+desc
+type [cash,online]
