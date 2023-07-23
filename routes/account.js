@@ -1,5 +1,6 @@
 const rtr = require("express").Router();
 const accountModel = require("./../models/account");
+const customerMiddlewrae=require('../middlewares/customer')
 
 rtr.get("/", async (req, res) => {
   const allAccount = await accountModel.getByFilter({});
@@ -17,6 +18,18 @@ rtr.get("/:x", async (req, res) => {
     account,
   });
 });
+
+rtr.post('/create',customerMiddlewrae,async(req,res)=>{
+  const {body , auth} = req;
+  const account = await accountModel.insertAccount({
+    "accountType": body.accountType,
+    "accountNUmber": Math.floor(Math.random() * 100000),
+    "customerId":auth.id
+  });
+  res.json({
+    account,
+  });
+})
 
 rtr.post("/", async (req, res) => {
   // create

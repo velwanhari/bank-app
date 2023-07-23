@@ -1,0 +1,14 @@
+1. Create Staff by admin 
+    path => api/v1/admin/create_staff  method POST
+    apply admin middleware on admin router.
+    create staff using name address emp id
+    create user for staff using email and password and set relation_id 
+    return success
+
+2. Register customer
+    path api/v1/customer/register method post 
+    no middleware
+    create customer entry 
+    create user entry and map relation_id = customer._id
+
+

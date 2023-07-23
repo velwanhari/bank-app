@@ -1,7 +1,7 @@
 const server = require("./server");
 
 // Set port to 5000
-const port = 8080;
+const port = 8888;
 
 // Start the server and listen on port 5000
 const server_instance = server.listen(port, async () => {

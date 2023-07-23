@@ -1,5 +1,7 @@
 const rtr = require("express").Router();
 const customerModel = require("./../models/customer");
+const accountModel = require("../models/account");
+const customerMiddlewrae = require("../middlewares/customer");
 
 rtr.get("/", async (req, res) => {
   const allCustomer = await customerModel.getByFilter({});
@@ -7,6 +9,16 @@ rtr.get("/", async (req, res) => {
     allCustomer,
   });
 });
+
+rtr.get("/accountList", customerMiddlewrae, async (req, res) => {
+  const { auth } = req;
+  const accounts=await accountModel.getByFilter({customerId:auth.id})
+  res.json({
+    accounts
+  })
+});
+
+rtr.post("/register");
 
 rtr.get("/:x", async (req, res) => {
   const id = req.params.x;
