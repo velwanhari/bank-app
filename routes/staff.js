@@ -1,11 +1,87 @@
 const rtr = require("express").Router();
 const staffModel = require("./../models/staff");
-
+const staffMiddleware = require("../middlewares/staff");
+const customerModel = require("../models/customer");
+const accountModel = require("../models/account");
+const transactionModel=require('../models/transaction');
 rtr.get("/", async (req, res) => {
   const allStaff = await staffModel.getByFilter({});
   res.json({
     allStaff,
   });
+});
+
+rtr.post("/customerList", staffMiddleware, async (req, res) => {
+  const { auth, body } = req;
+  const customer = await customerModel.getById({ id: body.customerId });
+  if (!customer) {
+    const customers = await customerModel.getByFilter({});
+    res.json({
+      customers,
+    });
+  } else {
+    const { auth, body } = req;
+    const customer = await customerModel.getById({ id: body.customerId });
+    // const customers =await customerModel.getByFilter({id:body.name})  this is res in array
+    res.json({
+      customer,
+    });
+  }
+});
+
+rtr.post("/customerKyc", staffMiddleware, async (req, res) => {
+  const { auth, body } = req;
+  console.log(body);
+  const customer = await customerModel.updateCustomerById(body.customerId, {
+    kyc: body.kyc,
+  });
+  res.json({
+    customer,
+  });
+
+  console.log(customer);
+});
+
+rtr.post("/customer/transaction", staffMiddleware, async (req, res) => {
+  const { body } = req;
+
+  //to find true customer
+
+  const accounts = await accountModel.getByFilter({
+    customerId: body.customerId,
+    accountNumber: body.accountNumber,
+  });
+  if (accounts.length == 0) {
+    return res.status(400).json("account doesn't exist");
+  }
+  const account = accounts[0];
+  let { amount } = account;
+  amount=parseFloat(amount);
+  if(isNaN(amount)){
+    amount=0;
+  }
+  if (body.type == "credit") {
+    amount = parseFloat(amount) + parseFloat(body.amount);
+  }
+  if (body.type == "debit") {
+    if (parseFloat(amount) > parseFloat(body.amount)) {
+      amount = parseFloat(amount) - parseFloat(body.amount);
+    } else {
+      return res.status(400).json("not enough balance");
+    }
+  }
+  await accountModel.updateAccountById(account._id,{amount});
+
+  await transactionModel.insertTrasaction({
+      "account_id": account._id.toString(),
+      "isCredit": body.type=='credit',
+      "amount": body.amount,
+      "desc": body.desc,
+      "type": "offline"    
+  })
+  res.json({
+    success: true,
+  })
 });
 
 rtr.get("/:x", async (req, res) => {
