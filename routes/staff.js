@@ -29,6 +29,14 @@ rtr.post("/customerList", staffMiddleware, async (req, res) => {
   }
 });
 
+rtr.post("/accountList", staffMiddleware, async (req, res) => {
+  const { body } = req;
+  const accounts = await accountModel.getByFilter({ customerId: body.id });
+  res.json({
+    accounts,
+  });
+});
+
 rtr.post("/customerKyc", staffMiddleware, async (req, res) => {
   const { auth, body } = req;
   console.log(body);

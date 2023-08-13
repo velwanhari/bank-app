@@ -1,9 +1,12 @@
 const rtr = require("express").Router();
+const { validationResult } = require("express-validator");
 const customerModel = require("./../models/customer");
 const accountModel = require("../models/account");
 const customerMiddlewrae = require("../middlewares/customer");
+const {registerCustomerValidators} = require("../middlewares/validators");
 const transactionModel = require("../models/transaction");
 const { createToken } = require("../helpers/jwt_functions");
+const userModel = require("../models/user");
 
 rtr.get("/", async (req, res) => {
   const allCustomer = await customerModel.getByFilter({});
@@ -20,7 +23,14 @@ rtr.get("/accountList", customerMiddlewrae, async (req, res) => {
   });
 });
 
-rtr.post("/register", async (req, res) => {
+
+rtr.post("/register", registerCustomerValidators, async (req, res) => {
+  const result = validationResult(req);
+  
+  if (!result.isEmpty()) {
+    return res.status(422).json({ errors: result.array() });
+  }
+
   const { body } = req;
 
   const custUser = await customerModel.insertCustomer({
@@ -31,13 +41,13 @@ rtr.post("/register", async (req, res) => {
     pan: body.pan,
   });
 
-  const user = await user.insertUser({
+  const user = await userModel.insertUser({
     email: body.email,
     password: body.password,
     type: "customer",
     relation_id: custUser._id,
   });
-  
+
   const payload = {
     id: user._id,
     userType: "customer",
@@ -49,7 +59,6 @@ rtr.post("/register", async (req, res) => {
     success: true,
     token,
   });
-
 });
 
 rtr.post("/transaction", customerMiddlewrae, async (req, res) => {

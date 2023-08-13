@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const createError = require("http-errors");
+var cors = require('cors')
 
 const routes = require("./routes"); 
 const adminMiddleware = require("./middlewares/admin"); 
@@ -8,10 +9,13 @@ const adminMiddleware = require("./middlewares/admin");
 
 const app = express();
 
+
 /* initial configs */
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 // app.set("mongo-client", mongoClient());
+app.use(cors());
+
 
 app.get("/api/v1/hello",adminMiddleware, (req, res) => {
   // const client = app.get("mongo-client");
