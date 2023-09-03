@@ -1,20 +1,27 @@
 const rtr = require("express").Router();
 const user = require("./../models/user");
 const { createToken } = require("./../helpers/jwt_functions");
+const { loginCustomerValidators,loginAdminValidators,loginStaffValidators } = require("../middlewares/validators");
+const { validationResult } = require("express-validator");
 
-rtr.post("/admin", async (req, res) => {
+rtr.post("/admin", loginAdminValidators,async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
   const cred = req.body;
   const adminUsers = await user.getByFilter({ email: cred.email });
-  
-  console.log(adminUsers)
-if (!adminUsers || adminUsers.length == 0) {
-    return res.json("Something went wrong.");
+
+  if (!adminUsers || adminUsers.length == 0) {
+    return res.status(422).send("email no exist.");
   }
 
   const adminUser = adminUsers[0];
 
   if (adminUser.password != cred.password) {
-    return res.json("Something went wrong.");
+    return res.status(422).send("Password is not correct.");
   }
 
   const payload = {
@@ -31,21 +38,28 @@ if (!adminUsers || adminUsers.length == 0) {
   });
 });
 
-rtr.post("/staff", async (req, res) => {
+rtr.post("/staff",loginStaffValidators, async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+  
   const cred = req.body;
   const staffUsers = await user.getByFilter({ email: cred.email });
-  console.log(staffUsers)
+  console.log(staffUsers);
   if (!staffUsers || staffUsers.length == 0) {
-    return res.json("Something went wrong.");
+    return res.status(422).send("email no exist.");
   }
 
   const staffUser = staffUsers[0];
 
   if (staffUser.password != cred.password) {
-    return res.json("Something went wrong.");
+    return res.status(422).send("Password is not correct.");
   }
-  if(staffUser.type!=cred.type){
-    return res.json("wrong type")
+
+  if (staffUser.type != cred.type) {
+    return res.status(422).send("email no exist.");
   }
 
   const payload = {
@@ -60,21 +74,30 @@ rtr.post("/staff", async (req, res) => {
     success: true,
     token,
   });
-  });
+});
 
-rtr.post("/customer", async (req, res) => {
+rtr.post("/customer", loginCustomerValidators, async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
   const cred = req.body;
   const customerUsers = await user.getByFilter({ email: cred.email });
 
   if (!customerUsers || customerUsers.length == 0) {
-    return res.json("Something went wrong.");
+    return res.status(422).send("email no exists.");
   }
+
   const customerUser = customerUsers[0];
+
   if (customerUser.password != cred.password) {
-    return res.json("Something went wrong.");
+    return res.status(422).send("Paasword is not correct.");
   }
-  if(customerUser.type!=cred.type){
-    return res.json("wrong type")
+
+  if (customerUser.type != cred.type) {
+    return res.status(422).send("email no exists.");
   }
 
   const payload = {
@@ -89,7 +112,6 @@ rtr.post("/customer", async (req, res) => {
     success: true,
     token,
   });
-
 });
 
 module.exports = rtr;

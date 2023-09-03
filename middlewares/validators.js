@@ -9,7 +9,7 @@ const registerCustomerValidators = [
     .isNumeric()
     .withMessage("phone must be having 10 digit"),
   body("email").isEmail().withMessage("must be proper email"),
-  body("password").isLength({ min: 6 }).withMessage("min 6 req"),
+  body("password").isLength({ min: 6 }).withMessage("min 6 require"),
   body("confromPassword").custom((val, context) => {
     const { body } = context.req;
     if (val !== body.password.trim()) {
@@ -21,9 +21,41 @@ const registerCustomerValidators = [
   body("pan")
     .isAlphanumeric()
     .isLength({ max: 10, min: 10 })
-    .withMessage("must be proper email"),
+    .withMessage("must be prpper pan number"),
 ];
+
+const createAccountValidators = [
+  body("accountType").notEmpty().isLength({ min: 1 }).withMessage("please select account type")
+];
+
+const loginCustomerValidators = [
+  body("email").isEmail().withMessage("must be propor email"),
+  body("password").isLength({ min: 6 }).withMessage("min 6 require"),
+  body("type").equals("customer").withMessage("please select type"),
+];
+
+const loginStaffValidators = [
+  body("email").isEmail().withMessage("must be propor email"),
+  body("password").isLength({ min: 6 }).withMessage("min 6 require"),
+  body("type").equals("staff").withMessage("please select type"),
+];
+
+const loginAdminValidators = [
+  body("email").isEmail().withMessage("must be propor email"),
+  body("password").isLength({ min: 6 }).withMessage("min 6 require"),
+  body("type").equals("admin").withMessage("please select type"),
+];
+
+const transferAmountValidators=[
+  body("fromAcc").notEmpty().withMessage("please write Account number"),
+  body("toAcc").notEmpty().withMessage("please write Account number")
+]
 
 module.exports = {
   registerCustomerValidators,
+  loginCustomerValidators,
+  transferAmountValidators,
+  loginStaffValidators,
+  loginAdminValidators,
+  createAccountValidators
 };

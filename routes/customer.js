@@ -3,7 +3,10 @@ const { validationResult } = require("express-validator");
 const customerModel = require("./../models/customer");
 const accountModel = require("../models/account");
 const customerMiddlewrae = require("../middlewares/customer");
-const {registerCustomerValidators} = require("../middlewares/validators");
+const {
+  registerCustomerValidators,
+  transferAmountValidators,
+} = require("../middlewares/validators");
 const transactionModel = require("../models/transaction");
 const { createToken } = require("../helpers/jwt_functions");
 const userModel = require("../models/user");
@@ -17,18 +20,18 @@ rtr.get("/", async (req, res) => {
 
 rtr.get("/accountList", customerMiddlewrae, async (req, res) => {
   const { auth } = req;
-  const accounts = await accountModel.getByFilter({ customerId: auth.id });
+  const user = await userModel.getById(auth.id);
+  const accounts = await accountModel.getByFilter({ customerId: user.relation_id.toString() });
   res.json({
     accounts,
   });
 });
 
-
 rtr.post("/register", registerCustomerValidators, async (req, res) => {
-  const result = validationResult(req);
-  
-  if (!result.isEmpty()) {
-    return res.status(422).json({ errors: result.array() });
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
   }
 
   const { body } = req;
@@ -61,74 +64,99 @@ rtr.post("/register", registerCustomerValidators, async (req, res) => {
   });
 });
 
-rtr.post("/transaction", customerMiddlewrae, async (req, res) => {
-  const { auth, body } = req;
+rtr.post(
+  "/transaction",
+  customerMiddlewrae,
+  transferAmountValidators,
+  async (req, res) => {
+    const errors = validationResult(req);
 
-  //to find true customer
-  const accounts = await accountModel.getByFilter({
-    $and: [
-      { customerId: auth.id },
-      { accountNumber: { $in: [parseInt(body.from), parseInt(body.to)] } },
-    ],
-  });
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
 
-  if (accounts.length != 2) {
-    return res.status(400).json("account doesn't exist");
+    const { auth, body } = req;
+
+    const user = await userModel.getById(auth.id);
+
+    //to find true customer
+    const accounts = await accountModel.getByFilter({
+      $and: [
+        { customerId: user.relation_id.toString() },
+        { accountNumber: { $in: [parseInt(body.from), parseInt(body.to)] } },
+      ],
+    });
+
+    if (accounts.length != 2) {
+      return res.status(400).json("account doesn't exist");
+    }
+
+    const fromAccount = accounts.filter(
+      (x) => x.accountNumber == parseInt(body.from)
+    )[0];
+    const toAccount = accounts.filter(
+      (act) => act.accountNumber == parseInt(body.to)
+    )[0];
+
+    const transAmount = parseFloat(body.amount);
+
+    if (isNaN(transAmount)) {
+      return res.status(400).json("invalid amount");
+    }
+
+    let baseAmount = parseFloat(fromAccount.amount);
+    let toAmount = parseFloat(toAccount.amount);
+
+    if (isNaN(baseAmount)) {
+      baseAmount = 0;
+    }
+    if (isNaN(toAmount)) {
+      toAmount = 0;
+    }
+
+    if (baseAmount < transAmount) {
+      return res.status(400).json("not enough amount in from");
+    }
+
+    await accountModel.updateAccountById(fromAccount._id, {
+      amount: baseAmount - transAmount,
+    });
+
+    await accountModel.updateAccountById(toAccount._id, {
+      amount: toAmount + transAmount,
+    });
+
+    await transactionModel.insertTrasaction({
+      account_id: fromAccount._id.toString(),
+      isCredit: false,
+      amount: transAmount,
+      desc: body.desc,
+      type: "online",
+    });
+
+    await transactionModel.insertTrasaction({
+      account_id: toAccount._id.toString(),
+      isCredit: true,
+      amount: transAmount,
+      desc: body.desc,
+      type: "online",
+    });
+
+    res.json({
+      success: true,
+    });
   }
+);  
 
-  const fromAccount = accounts.filter(
-    (x) => x.accountNumber == parseInt(body.from)
-  )[0];
-  const toAccount = accounts.filter(
-    (act) => act.accountNumber == parseInt(body.to)
-  )[0];
+rtr.get("/transactions/:accountId", customerMiddlewrae, async (req, res) => {
+  const { accountId } = req.params;
 
-  const transAmount = parseFloat(body.amount);
-
-  if (isNaN(transAmount)) {
-    return res.status(400).json("invalid amount");
-  }
-
-  let baseAmount = parseFloat(fromAccount.amount);
-  let toAmount = parseFloat(toAccount.amount);
-
-  if (isNaN(baseAmount)) {
-    baseAmount = 0;
-  }
-  if (isNaN(toAmount)) {
-    toAmount = 0;
-  }
-
-  if (baseAmount < transAmount) {
-    return res.status(400).json("not enough amount in from");
-  }
-
-  await accountModel.updateAccountById(fromAccount._id, {
-    amount: baseAmount - transAmount,
-  });
-
-  await accountModel.updateAccountById(toAccount._id, {
-    amount: toAmount + transAmount,
-  });
-
-  await transactionModel.insertTrasaction({
-    account_id: fromAccount._id.toString(),
-    isCredit: false,
-    amount: transAmount,
-    desc: body.desc,
-    type: "online",
-  });
-
-  await transactionModel.insertTrasaction({
-    account_id: toAccount._id.toString(),
-    isCredit: true,
-    amount: transAmount,
-    desc: body.desc,
-    type: "online",
+  const list = await transactionModel.getByFilter({
+    account_id: accountId,
   });
 
   res.json({
-    success: true,
+    list,
   });
 });
 
