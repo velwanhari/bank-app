@@ -25,7 +25,10 @@ const registerCustomerValidators = [
 ];
 
 const createAccountValidators = [
-  body("accountType").notEmpty().isLength({ min: 1 }).withMessage("please select account type")
+  body("accountType")
+    .notEmpty()
+    .isLength({ min: 1 })
+    .withMessage("please select account type"),
 ];
 
 const loginCustomerValidators = [
@@ -46,10 +49,20 @@ const loginAdminValidators = [
   body("type").equals("admin").withMessage("please select type"),
 ];
 
-const transferAmountValidators=[
-  body("fromAcc").notEmpty().withMessage("please write Account number"),
-  body("toAcc").notEmpty().withMessage("please write Account number")
-]
+const transferAmountValidators = [
+  body("fromAcc").notEmpty().withMessage("please Select Account Number"),
+  body("toAcc").notEmpty().withMessage("please Select Account Number"),
+  body("amount").notEmpty().withMessage("please enter amount"),
+];
+
+const staffTransactionValidators = [
+  body("accountNumber")
+    .notEmpty()
+    .withMessage("please select your account number"),
+  body("amount").notEmpty().withMessage("please enter proper amount"),
+  body("type").notEmpty().withMessage("please selct type"),
+  body("desc").notEmpty().withMessage("please write any desc"),
+];
 
 module.exports = {
   registerCustomerValidators,
@@ -57,5 +70,6 @@ module.exports = {
   transferAmountValidators,
   loginStaffValidators,
   loginAdminValidators,
-  createAccountValidators
+  createAccountValidators,
+  staffTransactionValidators,
 };

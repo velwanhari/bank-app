@@ -52,7 +52,7 @@ rtr.post(
     const account = await accountModel.insertAccount({
       accountType: body.accountType,
       accountNumber: Math.floor(Math.random() * 100000),
-      customerId: customer.relation_id.toString(),
+      customerId: user.relation_id.toString(),
       amount: 0,
     });
     res.json({

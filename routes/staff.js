@@ -1,9 +1,12 @@
 const rtr = require("express").Router();
+const { validationResult } = require("express-validator");
 const staffModel = require("./../models/staff");
 const staffMiddleware = require("../middlewares/staff");
 const customerModel = require("../models/customer");
 const accountModel = require("../models/account");
 const transactionModel = require("../models/transaction");
+const {staffTransactionValidators} = require("../middlewares/validators");
+
 rtr.get("/", async (req, res) => {
   const allStaff = await staffModel.getByFilter({});
   res.json({
@@ -44,52 +47,60 @@ rtr.post("/customerKyc", staffMiddleware, async (req, res) => {
   res.json({
     customer,
   });
-
-  console.log(customer);
 });
 
-rtr.post("/customer/transaction", staffMiddleware, async (req, res) => {
-  const { body } = req;
+rtr.post(
+  "/customer/transaction",
+  staffMiddleware,
+  staffTransactionValidators,
+  async (req, res) => {
+    const errors = validationResult(req);
 
-  //to find true customer
-
-  const accounts = await accountModel.getByFilter({
-    customerId: body.customerId,
-    accountNumber: parseInt(body.accountNumber),
-  });
-  console.log(accounts);
-  if (accounts.length == 0) {
-    return res.status(400).json("account doesn't exist");
-  }
-  const account = accounts[0];
-  let { amount } = account;
-  amount = parseFloat(amount);
-  if (isNaN(amount)) {
-    amount = 0;
-  }
-  if (body.type == "credit") {
-    amount = parseFloat(amount) + parseFloat(body.amount);
-  }
-  if (body.type == "debit") {
-    if (parseFloat(amount) > parseFloat(body.amount)) {
-      amount = parseFloat(amount) - parseFloat(body.amount);
-    } else {
-      return res.status(400).json("not enough balance");
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
     }
-  }
-  await accountModel.updateAccountById(account._id, { amount });
 
-  await transactionModel.insertTrasaction({
-    account_id: account._id.toString(),
-    isCredit: body.type == "credit",
-    amount: body.amount,
-    desc: body.desc,
-    type: "offline",
-  });
-  res.json({
-    success: true,
-  });
-});
+    const { body } = req;
+
+    //to find true customer
+
+    const accounts = await accountModel.getByFilter({
+      customerId: body.customerId,
+      accountNumber: parseInt(body.accountNumber),
+    });
+    if (accounts.length == 0) {
+      return res.status(400).json("account doesn't exist");
+    }
+    const account = accounts[0];
+    let { amount } = account;
+    amount = parseFloat(amount);
+    if (isNaN(amount)) {
+      amount = 0;
+    }
+    if (body.type == "credit") {
+      amount = parseFloat(amount) + parseFloat(body.amount);
+    }
+    if (body.type == "debit") {
+      if (parseFloat(amount) > parseFloat(body.amount)) {
+        amount = parseFloat(amount) - parseFloat(body.amount);
+      } else {
+        return res.status(400).json("not enough balance");
+      }
+    }
+    await accountModel.updateAccountById(account._id, { amount });
+
+    await transactionModel.insertTrasaction({
+      account_id: account._id.toString(),
+      isCredit: body.type == "credit".toString(),
+      amount: body.amount,
+      desc: body.desc,
+      type: "offline",
+    });
+    res.json({
+      success: true,
+    });
+  }
+);
 
 rtr.get("/:x", async (req, res) => {
   const id = req.params.x;

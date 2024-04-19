@@ -76,26 +76,26 @@ rtr.post(
     }
 
     const { auth, body } = req;
-
     const user = await userModel.getById(auth.id);
 
     //to find true customer
     const accounts = await accountModel.getByFilter({
       $and: [
         { customerId: user.relation_id.toString() },
-        { accountNumber: { $in: [parseInt(body.from), parseInt(body.to)] } },
+        { accountNumber: { $in: [parseInt(body.fromAcc), parseInt(body.toAcc)] } },
       ],
     });
+    console.log(accounts)
 
     if (accounts.length != 2) {
       return res.status(400).json("account doesn't exist");
     }
 
     const fromAccount = accounts.filter(
-      (x) => x.accountNumber == parseInt(body.from)
+      (x) => x.accountNumber == parseInt(body.fromAcc)
     )[0];
     const toAccount = accounts.filter(
-      (act) => act.accountNumber == parseInt(body.to)
+      (act) => act.accountNumber == parseInt(body.toAcc)
     )[0];
 
     const transAmount = parseFloat(body.amount);
@@ -115,7 +115,7 @@ rtr.post(
     }
 
     if (baseAmount < transAmount) {
-      return res.status(400).json("not enough amount in from");
+      return res.status(400).json("not enough amount in from account");
     }
 
     await accountModel.updateAccountById(fromAccount._id, {

@@ -1,10 +1,12 @@
 const rtr = require("express").Router();
 const user = require("./../models/user");
 const { createToken } = require("./../helpers/jwt_functions");
-const { loginCustomerValidators,loginAdminValidators,loginStaffValidators } = require("../middlewares/validators");
+const { loginCustomerValidators } = require("../middlewares/validators");
+const { loginAdminValidators } = require("../middlewares/validators");
+const { loginStaffValidators } = require("../middlewares/validators");
 const { validationResult } = require("express-validator");
 
-rtr.post("/admin", loginAdminValidators,async (req, res) => {
+rtr.post("/admin", loginAdminValidators, async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -38,13 +40,13 @@ rtr.post("/admin", loginAdminValidators,async (req, res) => {
   });
 });
 
-rtr.post("/staff",loginStaffValidators, async (req, res) => {
+rtr.post("/staff", loginStaffValidators, async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.array() });
   }
-  
+
   const cred = req.body;
   const staffUsers = await user.getByFilter({ email: cred.email });
   console.log(staffUsers);
@@ -55,11 +57,11 @@ rtr.post("/staff",loginStaffValidators, async (req, res) => {
   const staffUser = staffUsers[0];
 
   if (staffUser.password != cred.password) {
-    return res.status(422).send("Password is not correct.");
+    return res.status(422).send("Password is not vaild.");
   }
 
   if (staffUser.type != cred.type) {
-    return res.status(422).send("email no exist.");
+    return res.status(422).send("not valid type.");
   }
 
   const payload = {
@@ -93,11 +95,11 @@ rtr.post("/customer", loginCustomerValidators, async (req, res) => {
   const customerUser = customerUsers[0];
 
   if (customerUser.password != cred.password) {
-    return res.status(422).send("Paasword is not correct.");
+    return res.status(422).send("Paasword is not valid.");
   }
 
   if (customerUser.type != cred.type) {
-    return res.status(422).send("email no exists.");
+    return res.status(422).send("not valid type.");
   }
 
   const payload = {
